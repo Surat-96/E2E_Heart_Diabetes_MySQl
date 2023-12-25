@@ -16,10 +16,17 @@ app.config['MYSQL_PASSWORD'] = ''
 app.config['MYSQL_DB'] = 'py_accounts'
 
 # Intialize MySQL
-mysql = MySQL(app)
+#mysql = MySQL(app)
+
+mysql = MySQLdb.connect(host=app.config['MYSQL_HOST'],
+                        user=app.config['MYSQL_USER'],
+                        password=app.config['MYSQL_PASSWORD'],
+                        db=app.config['MYSQL_DB'])
+
+cursor = mysql.cursor(MySQLdb.cursors.DictCursor)
 
 #diabetes model read
-filename = open('Diabetes/diabetespredictmodel.pkl', 'rb')
+filename = open('Diabetes/dpmod.pkl', 'rb')
 model = pickle.load(filename)
 filename.close()
 
@@ -51,9 +58,8 @@ def registration():
         email = request.form['email']
         password = request.form['password']
         
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s,%s)', (username,age,email,password))
-        mysql.connection.commit()
+        mysql.commit()
         print('You have successfully registered!')
         return render_template("login.html")
 
@@ -66,7 +72,6 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM accounts WHERE email = %s AND password = %s', (email, password))
         account = cursor.fetchone()
         if account:
@@ -101,9 +106,8 @@ def diapredict():
         my_prediction = model.predict(data)
         proba = model.predict_proba(data)[0][1]
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('INSERT INTO diabetes VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (na,pr,gl,bp,st,ins,bm,dp,ag,proba))
-        mysql.connection.commit()
+        mysql.commit()
         
         return render_template('diashow.html',name=na,prediction=my_prediction,proba=proba)
     return render_template('dia.html')
@@ -127,9 +131,8 @@ def hdpredict():
         my_prediction_proba = clf.predict_proba(data)[0][1]
         proba = round((my_prediction_proba),2)
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('INSERT INTO hdp VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (na,ag,cp,chol,fbp,restecg,thalach,exang,sl,proba))
-        mysql.connection.commit()
+        mysql.commit()
         
         return render_template('hdpshow.html',name=na,prediction=my_prediction,proba=proba)
     return render_template('hdp.html')
@@ -145,11 +148,9 @@ def disallud():
     if request.method == 'POST':
         li=[]
     
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM accounts')
         user = cursor.fetchall()
         #print(user)
-        #print(len(user))
         for i in range(len(user)):
             li.append(user[i])
         #print(li)
@@ -162,14 +163,12 @@ def disallud():
 def disalldd():
     if request.method == 'POST':
         li=[]
-    
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
         cursor.execute('SELECT * FROM diabetes')
         db = cursor.fetchall()
         for i in range(len(db)):
             li.append(db[i])
         lt = len(li)
-        #print(li)
 
         return render_template('manage2.html',list=li,len=lt)
     return render_template('index1.html')
@@ -180,13 +179,11 @@ def disallhd():
     if request.method == 'POST':
         li=[]
     
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM hdp')
         hd = cursor.fetchall()
         for i in range(len(hd)):
             li.append(hd[i])
         lt = len(li)
-        #print(li)
 
         return render_template('manage3.html',list=li,len=lt)
     return render_template('index1.html')
